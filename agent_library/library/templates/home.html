@@ -1,8 +1,172 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agent Library Home</title>
-    <h1>Welcome to the Agent Library</h1>
+    <title>Agentic Library - Discover Your Next Great Read</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'home.css' %}">
+</head>
+
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1><i class="fas fa-book-open"></i> Agentic Library</h1>
+            <p>Discover your next great read by genre</p>
+        </div>
+
+        <div class="search-container">
+            <form class="search-form" id="searchForm">
+                <div class="search-group">
+                    <input type="text" class="search-input" id="genreInput"
+                        placeholder="Enter a book genre (e.g., mystery, romance, sci-fi, fantasy...)" autocomplete="off"
+                        required>
+                    <i class="fas fa-tags search-icon"></i>
+                </div>
+
+                <button type="submit" class="search-button" id="searchBtn">
+                    <i class="fas fa-search"></i>
+                    Search Books
+                </button>
+            </form>
+        </div>
+
+        <div class="popular-genres">
+            <h3>Popular Genres</h3>
+            <div class="genre-tags">
+                <a href="#" class="genre-tag" onclick="searchGenre('mystery')">Mystery</a>
+                <a href="#" class="genre-tag" onclick="searchGenre('romance')">Romance</a>
+                <a href="#" class="genre-tag" onclick="searchGenre('fantasy')">Fantasy</a>
+                <a href="#" class="genre-tag" onclick="searchGenre('sci-fi')">Sci-Fi</a>
+                <a href="#" class="genre-tag" onclick="searchGenre('thriller')">Thriller</a>
+                <a href="#" class="genre-tag" onclick="searchGenre('biography')">Biography</a>
+                <a href="#" class="genre-tag" onclick="searchGenre('history')">History</a>
+                <a href="#" class="genre-tag" onclick="searchGenre('self-help')">Self-Help</a>
+            </div>
+        </div>
+
+        <div class="quick-tips">
+            <h4><i class="fas fa-lightbulb"></i> Quick Tips</h4>
+            <ul class="tips-list">
+                <li>Try specific subgenres like "cozy mystery" or "urban fantasy"</li>
+                <li>Combine genres like "historical fiction" or "romantic comedy"</li>
+                <li>Search by mood: "feel-good books" or "dark fiction"</li>
+                <li>Include time periods: "Victorian mystery" or "modern romance"</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Handle form submission
+        document.getElementById('searchForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const genreInput = document.getElementById('genreInput');
+            const searchBtn = document.getElementById('searchBtn');
+            const genre = genreInput.value.trim();
+
+            if (genre) {
+                performSearch(genre);
+            }
+        });
+
+        // Function to perform search
+        async function performSearch(genre) {
+
+            //const searchBtn = document.getElementById('searchBtn');
+            //const originalBtnContent = searchBtn.innerHTML;
+
+            try {
+                //showLoadingState('searchBtn');
+                const response = await fetch(`/books/search/?genre=${encodeURIComponent(genre)}`);
+                if (!response.ok) {
+                    throw new Error("Network response was not ok" + response.json());
+                }
+                const data = await response.json();
+                displayResults(data.books, genre);
+            } catch (error) {
+                alert("Could not fetch books. Please try again later.\n" + data);
+            }
+            finally {
+                //hideLoadingState('searchBtn', originalBtnContent);
+            }
+        }
+
+        // Function for genre tag clicks
+        function searchGenre(genre) {
+            document.getElementById('genreInput').value = genre;
+            performSearch(genre);
+        }
+
+        function displayResults(books, genre) {
+            let resultsContainer = document.querySelector('.results-container');
+
+            // If results container doesn't exist, create it
+            if (!resultsContainer) {
+                resultsContainer = document.createElement('div');
+                resultsContainer.className = 'results-container';
+                document.querySelector('.container').appendChild(resultsContainer);
+            }
+
+            resultsContainer.innerHTML = `
+                <h2>Books in "${genre}" genre</h2>
+                <div class="books-grid">
+                    ${books.map(book => `
+                        <div class="book-card">
+                            <img src="${book.image_url || '/static/default_cover.png'}" 
+                                alt="${book.title}"
+                                class="book-image">
+                            <div class="book-info">
+                                <h3 class="book-title">${book.title}</h3>
+                                <p class="book-author">${book.author}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Show loading state
+        function showLoadingState(button) {
+            button.disabled = true;
+            button.innerHTML = `
+        <i class="fas fa-spinner fa-spin"></i>
+        Searching...
+    `;
+            button.style.opacity = '0.7';
+        }
+
+        // Hide loading state
+        function hideLoadingState(button, originalContent) {
+            button.disabled = false;
+            button.innerHTML = originalContent;
+            button.style.opacity = '1';
+        }
+
+        // Auto-complete suggestions (basic implementation)
+        const genreInput = document.getElementById('genreInput');
+        const popularGenres = [
+            'mystery', 'romance', 'fantasy', 'sci-fi', 'thriller', 'biography',
+            'history', 'self-help', 'horror', 'adventure', 'comedy', 'drama',
+            'crime', 'western', 'contemporary fiction', 'historical fiction',
+            'young adult', 'children', 'poetry', 'philosophy', 'psychology',
+            'business', 'health', 'cooking', 'travel', 'art', 'music'
+        ];
+
+        genreInput.addEventListener('input', function () {
+            const value = this.value.toLowerCase();
+            // Here you could implement a dropdown with suggestions
+            // For now, we'll just ensure the input is clean
+            this.value = this.value.replace(/[^a-zA-Z\s-]/g, '');
+        });
+
+        // Focus on search input when page loads
+        window.addEventListener('load', function () {
+            genreInput.focus();
+        });
+    </script>
+</body>
+
 </html>
