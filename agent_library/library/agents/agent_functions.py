@@ -1,10 +1,10 @@
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import PydanticOutputParser
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from .agent_models import BookRecommendations
-from .tools import search_tool
+from .tools import search_tool, image_search_tool
 
 load_dotenv()
 
@@ -44,7 +44,7 @@ agent = create_tool_calling_agent(
 agent_executor = AgentExecutor.from_agent_and_tools(
     agent=agent,
     tools=tools,
-    verbose=False
+    verbose=True
 )
 
 # Function to get book recommendations based on a genre query
@@ -58,4 +58,15 @@ def get_llm_recommendation(query: str) -> dict:
     except Exception as e:
         print("Error parsing response:", e)
 
-print(get_llm_recommendation("science fiction"))
+# Function for summary
+def stream_summary(title: str):
+    prompt = PromptTemplate.from_template(
+        "Provide a concise summary for the book titled '{title}'."
+    )
+
+    chain = prompt | llm
+
+    for chunk in chain.stream({'title': title}):
+        yield chunk.content if hasattr(chunk, "content") else str(chunk)
+        
+#print(get_llm_recommendation("science fiction"))

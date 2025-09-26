@@ -75,11 +75,12 @@
         // Function to perform search
         async function performSearch(genre) {
 
-            //const searchBtn = document.getElementById('searchBtn');
-            //const originalBtnContent = searchBtn.innerHTML;
+            console.log("Called performSearch with genre:", genre);
+            const searchBtn = document.getElementById('searchBtn');
+            const originalBtnContent = searchBtn.innerHTML;
 
             try {
-                //showLoadingState('searchBtn');
+                showLoadingState(searchBtn);
                 const response = await fetch(`/books/search/?genre=${encodeURIComponent(genre)}`);
                 if (!response.ok) {
                     throw new Error("Network response was not ok" + response.json());
@@ -90,7 +91,7 @@
                 alert("Could not fetch books. Please try again later.\n" + data);
             }
             finally {
-                //hideLoadingState('searchBtn', originalBtnContent);
+                hideLoadingState(searchBtn, originalBtnContent);
             }
         }
 
@@ -111,22 +112,158 @@
             }
 
             resultsContainer.innerHTML = `
-                <h2>Books in "${genre}" genre</h2>
-                <div class="books-grid">
-                    ${books.map(book => `
-                        <div class="book-card">
+        <h2>Books in "${genre}" genre</h2>
+        <div class="books-grid">
+            ${books.map(book => `
+                <div class="book-card" onclick="showBookDetails(${JSON.stringify(book).replace(/"/g, '&quot;')})">
+                    <img src="${book.image_url || '/static/default_cover.png'}" 
+                        alt="${book.title}"
+                        class="book-image">
+                    <div class="book-info">
+                        <h3 class="book-title">${book.title}</h3>
+                        <p class="book-author">${book.author}</p>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+        }
+
+        // Function to show book details page
+        function showBookDetails(book) {
+            // Hide the main container and show book details
+            document.querySelector('.container').style.display = 'none';
+
+            // Remove any existing book-detail-container
+            let oldDetail = document.querySelector('.book-detail-container');
+            if (oldDetail) {
+                oldDetail.parentNode.removeChild(oldDetail);
+            }
+
+            // Create detail container
+            let bookDetailContainer = document.createElement('div');
+            bookDetailContainer.className = 'book-detail-container';
+            document.body.appendChild(bookDetailContainer);
+
+            // Create detail container if it doesn't exist
+            if (!bookDetailContainer) {
+                bookDetailContainer = document.createElement('div');
+                bookDetailContainer.className = 'book-detail-container';
+                document.body.appendChild(bookDetailContainer);
+            }
+
+            // Populate book details
+            bookDetailContainer.innerHTML = `
+                <div class="book-detail">
+                    <button class="back-button" onclick="goBackToResults()">
+                        <i class="fas fa-arrow-left"></i> Back to Results
+                    </button>
+            
+                    <div class="book-detail-content">
+                        <div class="book-detail-image" class="book-image">
                             <img src="${book.image_url || '/static/default_cover.png'}" 
                                 alt="${book.title}"
-                                class="book-image">
-                            <div class="book-info">
-                                <h3 class="book-title">${book.title}</h3>
-                                <p class="book-author">${book.author}</p>
+                                class="detail-image">
+                        </div>
+                
+                        <div class="book-info">
+                            <h1 class="detail-title">${book.title}</h1>
+                            <p class="detail-author">by ${book.author}</p>
+                    
+                            <div class="book-meta">
+                                ${book.genre ? `<p><strong>Genre:</strong> ${book.genre}</p>` : ''}
+                                ${book.published_year ? `<p><strong>Published:</strong> ${book.published_year}</p>` : ''}
+                                ${book.pages ? `<p><strong>Pages:</strong> ${book.pages}</p>` : ''}
+                                ${book.isbn ? `<p><strong>ISBN:</strong> ${book.isbn}</p>` : ''}
+                            </div>
+                    
+                            ${book.description ? `
+                                <div class="book-info">
+                                    <h3>Description</h3>
+                                    <p>${book.description}</p>
+                                </div>
+                            ` : ''}
+                    
+                            ${book.publisher ? `<p><strong>Publisher:</strong> ${book.publisher}</p>` : ''}
+                    
+                            <div class="action-buttons">
+                                <button id="summary-btn" class="action-btn summary-btn" onclick="generateSummary('${encodeURIComponent(book.title)}', '${encodeURIComponent(book.author)}')">
+                                    <i class="fas fa-magic"></i> Generate Summary
+                                </button>
+                            </div>
+                            <div id="summary-box" style="display:none; margin-top:18px;">
+                                <textarea id="summary-text" rows="6" style="width:100%; min-height:220px; border-radius:8px; padding:16px; font-size:1.08rem;" readonly placeholder="Summary will appear here..."></textarea>
                             </div>
                         </div>
-                    `).join('')}
+                    </div>
                 </div>
             `;
+
+            bookDetailContainer.style.display = 'block';
+
+            //document.getElementById('summary-btn').onclick = function() {
+            //generateSummary(book.title, book.author);
+            //};
         }
+
+        // Function to go back to search results
+        function goBackToResults() {
+            document.querySelector('.book-detail-container').style.display = 'none';
+            document.querySelector('.container').style.display = 'block';
+        }
+
+        function generateSummary(title, author) {
+            console.log("Generating summary for:", title, "by", author);
+
+            const summaryBtn = document.getElementById('summary-btn');
+            const summaryBox = document.getElementById('summary-box');
+            const summaryText = document.getElementById('summary-text');
+            summaryBox.style.display = 'block';
+            summaryText.value = "";
+
+            summaryBtn.disabled = true;
+            const originalBtnContent = summaryBtn.innerHTML;
+            summaryBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Generating...`;
+            // You can replace the line above with an AJAX call to your backend to get the summary
+            fetch('/books/summary/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ title: title })
+            })
+                .then(response => {
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    function read() {
+                        reader.read().then(({ done, value }) => {
+                            if (done) {
+                                summaryBtn.disabled = false;
+                                summaryBtn.innerHTML = originalBtnContent;
+                                return;
+                            }
+                            const chunk = decoder.decode(value);
+                            chunk.split('\n').forEach(line => {
+                                if (line.startsWith('data: ')) {
+                                    summaryText.value += line.replace('data: ', '');
+                                }
+                            });
+                            read();
+                        });
+                    }
+                    read();
+                })
+                .catch(error => {
+                    summaryText.value = "Error generating summary.";
+                    summaryBtn.disabled = false;
+                    summaryBtn.innerHTML = originalBtnContent;
+                });
+        }
+
+        // Handle browser back button
+        window.addEventListener('popstate', function (event) {
+            goBackToResults();
+        });
 
         // Show loading state
         function showLoadingState(button) {
