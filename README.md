@@ -58,3 +58,10 @@ python manage.py runserver
 
 ### 🎨Preview
 <img width=75% height=75% alt="image" src="https://github.com/user-attachments/assets/72f1e319-09c6-4b4d-abe4-4befc71049b5" />
+
+### 🪧Demo
+```
+http://agentlibraryeb-env.eba-w2cai2xq.us-east-1.elasticbeanstalk.com/#
+
+This link might or might not work depending on the time. Let me know if you would like to see it!
+```
